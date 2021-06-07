@@ -38,11 +38,11 @@ extension CallStation: Station {
             
         case .answer(from: let fromUser):
             if (callsList.count > 0) {
-                for i in callsList {
-                    if (i.outgoingUser == fromUser) {
-                        let newCall = Call(id: i.id, incomingUser: i.incomingUser, outgoingUser: i.outgoingUser, status: CallStatus.talk)
+                for i in 0..<callsList.count {
+                    if (callsList[i].outgoingUser == fromUser) {
+                        let newCall = Call(id: callsList[i].id, incomingUser: callsList[i].incomingUser, outgoingUser: callsList[i].outgoingUser, status: CallStatus.talk)
+                            callsList.remove(at: i)
                             callsList.append(newCall)
-                        
                     }
                 }
               
@@ -51,19 +51,36 @@ extension CallStation: Station {
         case .end(from: let fromUser):
             
             if (callsList.count > 0) {
-                if (callsList.last?.status == .talk) {
-                    let newCall = Call(id: callsList.last!.id, incomingUser: callsList.last!.incomingUser, outgoingUser: callsList.last!.outgoingUser, status: CallStatus.ended(reason: .end))
-                    if (callsList.last!.outgoingUser == fromUser){
-                        callsList.removeLast()
-                        callsList.append(newCall)
+                
+                for i in 0..<callsList.count {
+                    if (callsList[i].status == .talk && (callsList[i].outgoingUser == fromUser || callsList[i].incomingUser == fromUser)) {
+                        let newCall = Call(id: callsList[i].id, incomingUser: callsList[i].incomingUser, outgoingUser: callsList[i].outgoingUser, status: CallStatus.ended(reason: .end))
+                        //if (callsList[i].outgoingUser == fromUser){
+                            callsList.remove(at: i)
+                            callsList.append(newCall)
+                       // }
+                    } else if (callsList[i].status == .calling && (callsList[i].outgoingUser == fromUser || callsList[i].incomingUser == fromUser)) {
+                        let newCall = Call(id: callsList[i].id, incomingUser: callsList[i].incomingUser, outgoingUser: callsList[i].outgoingUser, status: CallStatus.ended(reason: .cancel))
+                      
+                            callsList.remove(at: i)
+                            callsList.append(newCall)
+                
+                    } else if (callsList[i].status == .calling && callsList[i].outgoingUser == fromUser) {
+                        for caller in 0..<callsList.count {
+                            if ((callsList[i].incomingUser == callsList[caller].incomingUser || callsList[i].incomingUser == callsList[caller].outgoingUser) && callsList[caller].status == .talk){
+                                
+                            }
+                        }
+                        let newCall = Call(id: callsList[i].id, incomingUser: callsList[i].incomingUser, outgoingUser: callsList[i].outgoingUser, status: CallStatus.ended(reason: .cancel))
+                      
+                            callsList.remove(at: i)
+                            callsList.append(newCall)
+                
                     }
-                } else if (callsList.last?.status == .calling) {
-                    let newCall = Call(id: callsList.last!.id, incomingUser: callsList.last!.incomingUser, outgoingUser: callsList.last!.outgoingUser, status: CallStatus.ended(reason: .cancel))
-                  
-                        callsList.removeLast()
-                        callsList.append(newCall)
-            
                 }
+                
+                
+               
                 
             }
             currentCall = nil
@@ -93,7 +110,14 @@ extension CallStation: Station {
     }
     
     func call(id: CallID) -> Call? {
-        nil
+        var call: Call?
+        for i in callsList {
+            if (i.id == id){
+                call = i
+                break
+            }
+        }
+        return call
     }
     
     func currentCall(user: User) -> Call? {
